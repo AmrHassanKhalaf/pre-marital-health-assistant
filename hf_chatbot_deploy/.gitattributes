@@ -1,1 +1,2 @@
-version https://git-lfs.github.com/spec/v1
+# Auto detect text files and perform LF normalization
+* text=auto

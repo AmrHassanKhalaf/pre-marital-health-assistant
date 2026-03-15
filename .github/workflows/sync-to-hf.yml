@@ -35,6 +35,14 @@ jobs:
           # ---- انسخ الملفات الجديدة من hf_chatbot_deploy ----
           cp -r ../hf_chatbot_deploy/* .
           cp -r ../hf_chatbot_deploy/.* . 2>/dev/null || true
+
+          # ---- Fix common HF validation issues ----
+          # Ensure model card metadata is valid for Spaces
+          if [ -f README.md ]; then
+            sed -i 's/^colorFrom:.*/colorFrom: blue/' README.md
+          fi
+          # Ensure .gitattributes is a valid git attributes file (not LFS pointer text)
+          printf '# Auto detect text files and perform LF normalization\n* text=auto\n' > .gitattributes
           
           # ---- ارفع على HF ----
           git add .

@@ -1,7 +1,7 @@
 ---
 title: رفيقة — مساعد الصحة قبل الزواج
 emoji: 💍
-colorFrom: cyan
+colorFrom: blue
 colorTo: pink
 sdk: gradio
 sdk_version: "6.5.1"
