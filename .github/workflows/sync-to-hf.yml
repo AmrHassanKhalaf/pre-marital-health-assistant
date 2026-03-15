@@ -39,10 +39,15 @@ jobs:
           # ---- Fix common HF validation issues ----
           # Ensure model card metadata is valid for Spaces
           if [ -f README.md ]; then
-            sed -i 's/^colorFrom:.*/colorFrom: blue/' README.md
+            sed -i -E 's/^[[:space:]]*colorFrom:.*/colorFrom: blue/' README.md
           fi
           # Ensure .gitattributes is a valid git attributes file (not LFS pointer text)
           printf '# Auto detect text files and perform LF normalization\n* text=auto\n' > .gitattributes
+
+          echo "--- README preview ---"
+          head -n 20 README.md || true
+          echo "--- .gitattributes preview ---"
+          cat .gitattributes || true
           
           # ---- ارفع على HF ----
           git add .
