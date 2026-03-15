@@ -762,34 +762,15 @@
                 localStorage.setItem('rafiqa_hf_url', baseUrl);
 
                 try {
-                    const callResp = await fetch(`${baseUrl}/gradio_api/call/get_admin_data`, {
+                    const callResp = await fetch(`/api/get-admin-data`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ data: [adminKey] }),
+                        body: JSON.stringify({ hfSpaceUrl: baseUrl, adminKey }),
                     });
 
                     if (!callResp.ok) throw new Error(`API error (${callResp.status})`);
 
-                    const { event_id } = await callResp.json();
-
-                    const sseResp = await fetch(`${baseUrl}/gradio_api/call/get_admin_data/${event_id}`);
-                    const sseText = await sseResp.text();
-
-                    let output = '';
-                    const sseLines = sseText.split('\n');
-                    for (let i = 0; i < sseLines.length; i++) {
-                        if (sseLines[i].startsWith('event: complete') && i + 1 < sseLines.length) {
-                            const dataLine = sseLines[i + 1];
-                            if (dataLine.startsWith('data: ')) {
-                                const parsed = JSON.parse(dataLine.slice(6));
-                                output = parsed[0];
-                            }
-                        }
-                    }
-
-                    if (!output) return;
-
-                    const data = JSON.parse(output);
+                    const data = await callResp.json();
 
                     if (data.error) {
                         if (!silent) this.showToast('مفتاح الأدمن غير صحيح', 'error');
