@@ -21,7 +21,7 @@ os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 # ─── Configuration ────────────────────────────────
 INDEX_NAME = os.environ.get("PINECONE_INDEX", "pre-marital-health-assistant")
-NAMESPACE = os.environ.get("PINECONE_NAMESPACE", "premarital")
+NAMESPACE = os.environ.get("PINECONE_NAMESPACE", "pre_marital_health_assistant")
 
 # Resolve paths relative to this script's location
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

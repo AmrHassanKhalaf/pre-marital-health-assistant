@@ -23,10 +23,10 @@ load_dotenv()
 
 # ─── Configuration ────────────────────────────────
 PINECONE_INDEX = os.environ.get("PINECONE_INDEX", "pre-marital-health-assistant")
-PINECONE_NAMESPACE = os.environ.get("PINECONE_NAMESPACE", "premarital")
+PINECONE_NAMESPACE = os.environ.get("PINECONE_NAMESPACE", "pre_marital_health_assistant")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 MAX_HISTORY_TURNS = 12
-ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "rafiqa-admin-2026")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "Chat-Bot-1")
 
 # ─── Initialize Components ───────────────────────
 embeddings = download_hugging_face_embeddings()

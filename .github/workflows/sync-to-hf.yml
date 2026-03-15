@@ -26,7 +26,7 @@ jobs:
           git config --global user.name "GitHub Actions"
 
           # ---- Clone الـ HF Space ----
-          git clone https://YOUR_HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/YOUR_HF_USERNAME/pre-marital-health-assistant hf_space
+          git clone https://amrhassank:$HF_TOKEN@huggingface.co/spaces/amrhassank/pre-marital-health-assistant hf_space
           
           # ---- امسح الملفات القديمة (ماعدا .git) ----
           cd hf_space
