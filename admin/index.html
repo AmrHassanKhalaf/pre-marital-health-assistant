@@ -1,0 +1,995 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفيقة — لوحة التحكم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'] },
+                    colors: {
+                        hanan: {
+                            50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc',
+                            300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4',
+                            600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63',
+                        },
+                        brand: {
+                            50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc',
+                            300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4',
+                            600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; }
+        .sidebar-link.active { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .stat-card { transition: all 0.3s ease; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #a5f3fc; border-radius: 3px; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .gradient-bg { background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #ec4899 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 font-cairo" x-data="adminApp()" x-init="init()">
+
+    <!-- Login Screen -->
+    <div x-show="!isLoggedIn" x-transition class="min-h-screen flex items-center justify-center gradient-bg">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">👶</div>
+                <h1 class="text-3xl font-bold text-gray-800">رفيقة</h1>
+                <p class="text-gray-500 mt-2">لوحة تحكم المشرف</p>
+            </div>
+            <form @submit.prevent="login()">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">البريد الإلكتروني</label>
+                    <input x-model="loginForm.email" type="email" 
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-brand-500 focus:outline-none transition" 
+                        placeholder="admin@rafiqa.app" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">كلمة المرور</label>
+                    <input x-model="loginForm.password" type="password" 
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-brand-500 focus:outline-none transition" 
+                        placeholder="••••••••" required>
+                </div>
+                <div x-show="loginError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center" x-text="loginError"></div>
+                <button type="submit" 
+                    class="w-full py-3 px-4 gradient-bg text-white font-bold rounded-xl hover:opacity-90 transition shadow-lg">
+                    <i class="fas fa-sign-in-alt ml-2"></i> تسجيل الدخول
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div x-show="isLoggedIn" x-transition class="flex min-h-screen">
+        
+        <!-- Sidebar -->
+        <aside class="w-72 bg-white shadow-xl border-l border-gray-100 flex flex-col sticky top-0 h-screen">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center text-white text-xl">👶</div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">رفيقة</h2>
+                        <p class="text-xs text-gray-400">لوحة التحكم</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4 space-y-2">
+                <template x-for="item in navItems" :key="item.id">
+                    <button @click="currentTab = item.id" 
+                        :class="currentTab === item.id ? 'active' : 'text-gray-600 hover:bg-gray-50'"
+                        class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium">
+                        <i :class="item.icon" class="w-5 text-center"></i>
+                        <span x-text="item.label"></span>
+                        <span x-show="item.badge" x-text="item.badge" 
+                            class="mr-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"></span>
+                    </button>
+                </template>
+            </nav>
+
+            <!-- User Section -->
+            <div class="p-4 border-t border-gray-100">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-brand-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-700 text-sm">المشرف</p>
+                        <p class="text-xs text-gray-400" x-text="loginForm.email"></p>
+                    </div>
+                </div>
+                <button @click="logout()" 
+                    class="w-full py-2 px-3 text-red-500 hover:bg-red-50 rounded-xl transition text-sm font-medium">
+                    <i class="fas fa-sign-out-alt ml-1"></i> تسجيل الخروج
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-auto">
+            
+            <!-- Top Bar -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800" x-text="navItems.find(i => i.id === currentTab)?.label"></h1>
+                    <p class="text-gray-400 text-sm mt-1" x-text="getTabDescription()"></p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button @click="fetchAdminData()" :disabled="isLoadingData"
+                        class="w-10 h-10 bg-white rounded-xl shadow flex items-center justify-center hover:bg-gray-50 transition"
+                        :class="isLoadingData ? 'animate-spin' : ''" title="تحديث البيانات">
+                        <i class="fas fa-sync-alt text-gray-400"></i>
+                    </button>
+                    <div class="relative">
+                        <button class="w-10 h-10 bg-white rounded-xl shadow flex items-center justify-center hover:bg-gray-50 transition">
+                            <i class="fas fa-bell text-gray-400"></i>
+                        </button>
+                        <span x-show="stats.emergencyAlerts > 0" 
+                            class="absolute -top-1 -left-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
+                            x-text="stats.emergencyAlerts"></span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-400">
+                        <span x-show="lastFetch" class="flex items-center gap-1">
+                            <i class="fas fa-circle text-green-400 text-xs"></i> متصل
+                        </span>
+                        <span x-show="!lastFetch && uploadConfig.adminKey" class="flex items-center gap-1">
+                            <i class="fas fa-circle text-yellow-400 text-xs"></i> جاري الاتصال...
+                        </span>
+                        <span x-show="!uploadConfig.adminKey" class="flex items-center gap-1">
+                            <i class="fas fa-circle text-gray-300 text-xs"></i> غير متصل
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <i class="fas fa-calendar ml-1"></i>
+                        <span x-text="new Date().toLocaleDateString('ar-EG', {weekday:'long', year:'numeric', month:'long', day:'numeric'})"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Dashboard Tab ═══ -->
+            <div x-show="currentTab === 'dashboard'" x-transition class="fade-in">
+                <!-- Connection Banner -->
+                <div x-show="!uploadConfig.adminKey" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-link text-amber-500 text-xl"></i>
+                        <div class="flex-1">
+                            <p class="text-amber-800 font-medium">لوحة التحكم غير متصلة بالشات بوت</p>
+                            <p class="text-amber-600 text-sm">اذهب إلى تبويب <strong>قاعدة المعرفة</strong> وأدخل مفتاح الأدمن ورابط الشات بوت لمزامنة البيانات الحقيقية</p>
+                        </div>
+                        <button @click="currentTab = 'knowledge'" class="px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition text-sm font-medium">
+                            ربط الآن
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-comments text-brand-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800" x-text="stats.totalConversations"></h3>
+                        <p class="text-gray-400 text-sm mt-1">إجمالي المحادثات</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-users text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800" x-text="stats.activeUsers"></h3>
+                        <p class="text-gray-400 text-sm mt-1">مستخدم نشط</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-message text-amber-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800" x-text="stats.totalMessages"></h3>
+                        <p class="text-gray-400 text-sm mt-1">إجمالي الرسائل</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-triangle-exclamation text-red-600 text-xl"></i>
+                            </div>
+                            <span class="text-red-500 text-sm font-medium" x-show="stats.emergencyAlerts > 0">تنبيه!</span>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800" x-text="stats.emergencyAlerts"></h3>
+                        <p class="text-gray-400 text-sm mt-1">تنبيهات طوارئ</p>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">📊 المحادثات اليومية</h3>
+                        <div class="flex items-center justify-center h-48 text-gray-400">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line text-4xl mb-3 text-gray-300"></i>
+                                <p>البيانات الحية غير متاحة حالياً</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">📋 توزيع المواضيع</h3>
+                        <div class="flex items-center justify-center h-48 text-gray-400">
+                            <div class="text-center">
+                                <i class="fas fa-chart-pie text-4xl mb-3 text-gray-300"></i>
+                                <p>البيانات الحية غير متاحة حالياً</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4">🕐 آخر النشاطات</h3>
+                    <div class="space-y-3">
+                        <div x-show="recentActivities.length === 0" class="flex items-center justify-center py-8 text-gray-400">
+                            <div class="text-center">
+                                <i class="fas fa-inbox text-3xl mb-2 text-gray-300"></i>
+                                <p>لا توجد نشاطات حتى الآن</p>
+                            </div>
+                        </div>
+                        <template x-for="activity in recentActivities" :key="activity.id">
+                            <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm"
+                                    :class="activity.type === 'emergency' ? 'bg-red-100 text-red-600' : 
+                                            activity.type === 'conversation' ? 'bg-brand-100 text-brand-600' : 
+                                            'bg-green-100 text-green-600'">
+                                    <i :class="activity.icon"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-gray-700 text-sm font-medium" x-text="activity.text"></p>
+                                    <p class="text-gray-400 text-xs" x-text="activity.time"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Conversations Tab ═══ -->
+            <div x-show="currentTab === 'conversations'" x-transition class="fade-in">
+                <!-- Search & Filter -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex-1 min-w-[250px]">
+                            <div class="relative">
+                                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                                <input x-model="searchQuery" type="text" placeholder="ابحثي في المحادثات..." 
+                                    class="w-full pr-10 pl-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition">
+                            </div>
+                        </div>
+                        <select x-model="filterStatus" class="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none">
+                            <option value="all">جميع الحالات</option>
+                            <option value="normal">عادية</option>
+                            <option value="emergency">طوارئ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Conversations List -->
+                <div class="space-y-4">
+                    <div x-show="filteredConversations().length === 0" class="flex items-center justify-center py-12 text-gray-400">
+                        <div class="text-center">
+                            <i class="fas fa-comments text-4xl mb-3 text-gray-300"></i>
+                            <p class="text-lg">لا توجد محادثات حتى الآن</p>
+                        </div>
+                    </div>
+                    <template x-for="conv in filteredConversations()" :key="conv.id">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer" 
+                            @click="selectedConversation = conv">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-brand-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-700" x-text="conv.userName"></h4>
+                                        <p class="text-gray-400 text-sm" x-text="conv.lastMessage"></p>
+                                    </div>
+                                </div>
+                                <div class="text-left">
+                                    <span class="text-xs px-3 py-1 rounded-full font-medium"
+                                        :class="conv.status === 'emergency' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'"
+                                        x-text="conv.status === 'emergency' ? '🚨 طوارئ' : '✅ عادية'"></span>
+                                    <p class="text-gray-400 text-xs mt-2" x-text="conv.date"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+                                <span class="text-xs text-gray-400"><i class="fas fa-message ml-1"></i> <span x-text="conv.messagesCount"></span> رسالة</span>
+                                <span class="text-xs text-gray-400"><i class="fas fa-clock ml-1"></i> <span x-text="conv.duration"></span></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Conversation Detail Modal -->
+                <div x-show="selectedConversation" x-transition 
+                    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" 
+                    @click.self="selectedConversation = null">
+                    <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl">
+                        <div class="p-6 border-b border-gray-100 flex items-center justify-between gradient-bg text-white">
+                            <div>
+                                <h3 class="font-bold text-lg" x-text="selectedConversation?.userName"></h3>
+                                <p class="text-sm opacity-80" x-text="selectedConversation?.date"></p>
+                            </div>
+                            <button @click="selectedConversation = null" class="w-8 h-8 rounded-lg bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="p-6 overflow-auto max-h-[60vh] space-y-4">
+                            <template x-for="msg in selectedConversation?.messages || []" :key="msg.id">
+                                <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                                    <div class="max-w-[80%] p-4 rounded-2xl text-sm"
+                                        :class="msg.role === 'user' 
+                                            ? 'bg-brand-500 text-white rounded-bl-sm' 
+                                            : 'bg-cyan-50 text-gray-700 border border-cyan-100 rounded-br-sm'">
+                                        <p x-text="msg.content"></p>
+                                        <p class="text-xs mt-2 opacity-60" x-text="msg.time"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Alerts Tab ═══ -->
+            <div x-show="currentTab === 'alerts'" x-transition class="fade-in">
+                <div class="space-y-4">
+                    <div x-show="emergencyAlerts.length === 0" class="flex items-center justify-center py-12 text-gray-400">
+                        <div class="text-center">
+                            <i class="fas fa-check-circle text-4xl mb-3 text-green-300"></i>
+                            <p class="text-lg">لا توجد تنبيهات طوارئ حالياً</p>
+                        </div>
+                    </div>
+                    <template x-for="alert in emergencyAlerts" :key="alert.id">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border-r-4"
+                            :class="alert.severity === 'critical' ? 'border-red-500' : 'border-amber-500'">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+                                        :class="alert.severity === 'critical' ? 'bg-red-100' : 'bg-amber-100'">
+                                        🚨
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-700" x-text="alert.symptom"></h4>
+                                        <p class="text-gray-500 text-sm mt-1" x-text="alert.userMessage"></p>
+                                        <div class="flex items-center gap-3 mt-3">
+                                            <span class="text-xs text-gray-400"><i class="fas fa-user ml-1"></i> <span x-text="alert.userName"></span></span>
+                                            <span class="text-xs text-gray-400"><i class="fas fa-clock ml-1"></i> <span x-text="alert.time"></span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="text-xs px-3 py-1 rounded-full font-bold"
+                                    :class="alert.severity === 'critical' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'"
+                                    x-text="alert.severity === 'critical' ? 'حرج' : 'تحذير'"></span>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center gap-3">
+                                <span class="text-xs px-3 py-1 rounded-full font-medium"
+                                    :class="alert.handled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'"
+                                    x-text="alert.handled ? '✅ تم التوجيه للطبيب' : '⏳ بانتظار المتابعة'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ═══ Knowledge Tab ═══ -->
+            <div x-show="currentTab === 'knowledge'" x-transition class="fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Knowledge Base Stats -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">📚 قاعدة المعرفة</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <span class="text-gray-600">عدد المستندات</span>
+                                <span class="font-bold text-brand-600" x-text="knowledge.totalDocs"></span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <span class="text-gray-600">عدد الأجزاء (Chunks)</span>
+                                <span class="font-bold text-brand-600" x-text="knowledge.totalChunks"></span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <span class="text-gray-600">Pinecone Index</span>
+                                <span class="font-bold text-brand-600" x-text="knowledge.indexName"></span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <span class="text-gray-600">Namespace</span>
+                                <span class="font-bold text-brand-600" x-text="knowledge.namespace"></span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <span class="text-gray-600">آخر تحديث</span>
+                                <span class="font-bold text-green-600" x-text="knowledge.lastUpdated"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Knowledge Sources -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">📄 مصادر البيانات</h3>
+                        <div class="space-y-3">
+                            <template x-for="source in knowledge.sources" :key="source.name">
+                                <div class="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                                        :class="source.type === 'pdf' ? 'bg-red-100' : source.type === 'excel' ? 'bg-green-100' : 'bg-blue-100'">
+                                        <i :class="source.type === 'pdf' ? 'fas fa-file-pdf text-red-500' : 
+                                                    source.type === 'excel' ? 'fas fa-file-excel text-green-500' : 
+                                                    'fas fa-globe text-blue-500'"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-gray-700 text-sm" x-text="source.name"></p>
+                                        <p class="text-gray-400 text-xs" x-text="source.size"></p>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">مفعّل</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Upload New Document ═══ -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">
+                            <i class="fas fa-cloud-upload-alt text-brand-500 ml-2"></i> رفع ملف جديد لقاعدة المعرفة (PDF, TXT, MD)
+                        </h3>
+                        <div class="space-y-4">
+                            <!-- HF Space URL -->
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">رابط HF Space (Chatbot)</label>
+                                <input x-model="uploadConfig.hfSpaceUrl" type="url"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition"
+                                    placeholder="https://YOUR_USERNAME-pre-marital-health-assistant.hf.space">
+                            </div>
+                            <!-- Admin Key -->
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">مفتاح الأدمن</label>
+                                <div class="flex gap-2">
+                                    <input x-model="uploadConfig.adminKey" type="password"
+                                        @change="localStorage.setItem('rafiqa_admin_key', uploadConfig.adminKey); fetchAdminData()"
+                                        class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition"
+                                        placeholder="أدخل مفتاح الأدمن">
+                                    <button @click="fetchAdminData()" :disabled="isLoadingData || !uploadConfig.adminKey"
+                                        class="px-4 py-3 gradient-bg text-white rounded-xl hover:opacity-90 transition disabled:opacity-50 text-sm font-medium whitespace-nowrap">
+                                        <i class="fas fa-sync-alt ml-1" :class="isLoadingData ? 'fa-spin' : ''"></i> مزامنة
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- File Input -->
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">اختر ملف (PDF, TXT, MD)</label>
+                                <div class="relative">
+                                    <input type="file" accept=".pdf,.txt,.md" @change="handleFileSelect($event)"
+                                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition
+                                               file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                               file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100">
+                                </div>
+                                <p x-show="uploadConfig.fileName" class="mt-1 text-sm text-gray-500">
+                                    📄 <span x-text="uploadConfig.fileName"></span>
+                                    (<span x-text="uploadConfig.fileSize"></span>)
+                                </p>
+                            </div>
+                            <!-- Upload Button -->
+                            <button @click="uploadFile()" :disabled="uploadConfig.isUploading"
+                                class="w-full py-3 gradient-bg text-white font-bold rounded-xl hover:opacity-90 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span x-show="!uploadConfig.isUploading"><i class="fas fa-cloud-upload-alt ml-2"></i> رفع ومعالجة</span>
+                                <span x-show="uploadConfig.isUploading"><i class="fas fa-spinner fa-spin ml-2"></i> جاري الرفع والمعالجة... يرجى الانتظار</span>
+                            </button>
+                            <!-- Progress -->
+                            <div x-show="uploadConfig.isUploading" class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-brand-500 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+                            </div>
+                            <!-- Result -->
+                            <div x-show="uploadConfig.result" class="p-4 rounded-xl text-sm whitespace-pre-line leading-relaxed"
+                                :class="uploadConfig.resultSuccess ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'"
+                                x-text="uploadConfig.result">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Settings Tab ═══ -->
+            <div x-show="currentTab === 'settings'" x-transition class="fade-in">
+                <div class="max-w-3xl space-y-6">
+                    <!-- Bot Settings -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-robot text-brand-500 ml-2"></i> إعدادات الشات بوت</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">اسم البوت</label>
+                                <input x-model="settings.botName" type="text" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">موديل الذكاء الاصطناعي</label>
+                                <select x-model="settings.model" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none">
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">عدد النتائج المسترجعة (k)</label>
+                                <input x-model="settings.retrievalK" type="number" min="1" max="10" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">عدد رسائل السياق (Memory)</label>
+                                <input x-model="settings.maxHistory" type="number" min="2" max="20" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Settings -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-key text-amber-500 ml-2"></i> مفاتيح API</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">Pinecone API Key</label>
+                                <div class="flex gap-2">
+                                    <input :type="showApiKeys ? 'text' : 'password'" x-model="settings.pineconeKey" 
+                                        class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition" placeholder="pk-...">
+                                    <button @click="showApiKeys = !showApiKeys" class="px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                                        <i :class="showApiKeys ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-gray-400"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">Google API Key</label>
+                                <input :type="showApiKeys ? 'text' : 'password'" x-model="settings.googleKey" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition" placeholder="AIza...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chatbot Links -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-link text-green-500 ml-2"></i> روابط النشر</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">رابط Hugging Face Space</label>
+                                <input x-model="settings.hfSpaceUrl" type="url" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition" 
+                                    placeholder="https://huggingface.co/spaces/your-name/pre-marital-health-assistant">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm font-medium mb-2">رابط لوحة التحكم (Vercel)</label>
+                                <input x-model="settings.adminUrl" type="url" 
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-500 focus:outline-none transition" 
+                                    placeholder="https://rafiqa-admin.vercel.app">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="flex gap-3">
+                        <button @click="saveSettings()" 
+                            class="px-8 py-3 gradient-bg text-white font-bold rounded-xl hover:opacity-90 transition shadow-lg">
+                            <i class="fas fa-save ml-2"></i> حفظ الإعدادات
+                        </button>
+                        <button class="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+                            إلغاء
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div x-show="toast.show" x-transition 
+        class="fixed bottom-6 left-6 z-50 px-6 py-3 rounded-xl shadow-lg text-white font-medium"
+        :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'">
+        <i :class="toast.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'" class="ml-2"></i>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <script>
+    function adminApp() {
+        return {
+            isLoggedIn: false,
+            currentTab: 'dashboard',
+            searchQuery: '',
+            filterStatus: 'all',
+            selectedConversation: null,
+            showApiKeys: false,
+            loginError: '',
+            toast: { show: false, message: '', type: 'success' },
+            isLoadingData: false,
+            lastFetch: null,
+            autoRefreshInterval: null,
+
+            loginForm: {
+                email: '',
+                password: '',
+            },
+
+            navItems: [
+                { id: 'dashboard', label: 'لوحة التحكم', icon: 'fas fa-chart-pie', badge: null },
+                { id: 'conversations', label: 'المحادثات', icon: 'fas fa-comments', badge: null },
+                { id: 'alerts', label: 'تنبيهات الطوارئ', icon: 'fas fa-bell', badge: null },
+                { id: 'knowledge', label: 'قاعدة المعرفة', icon: 'fas fa-book', badge: null },
+                { id: 'settings', label: 'الإعدادات', icon: 'fas fa-cog', badge: null },
+            ],
+
+            stats: {
+                totalConversations: '—',
+                activeUsers: '—',
+                totalMessages: '—',
+                emergencyAlerts: 0,
+            },
+
+            settings: {
+                botName: 'رفيقة',
+                model: 'gemini-2.5-flash',
+                retrievalK: 3,
+                maxHistory: 12,
+                pineconeKey: '',
+                googleKey: '',
+                hfSpaceUrl: '',
+                adminUrl: '',
+            },
+
+            defaultSources: [
+                { name: 'WHO Preconception Care', type: 'web', size: 'Online' },
+                { name: 'CDC Preconception Health', type: 'web', size: 'Online' },
+                { name: 'NHS Fertility and Pre-Pregnancy Health', type: 'web', size: 'Online' },
+            ],
+
+            knowledge: {
+                totalDocs: '—',
+                totalChunks: '—',
+                indexName: 'pre-marital-health-assistant',
+                namespace: 'premarital',
+                lastUpdated: '—',
+                sources: [],
+            },
+
+            uploadConfig: {
+                hfSpaceUrl: '',
+                adminKey: '',
+                file: null,
+                fileName: '',
+                fileSize: '',
+                isUploading: false,
+                result: '',
+                resultSuccess: false,
+            },
+
+            recentActivities: [],
+            conversations: [],
+            emergencyAlerts: [],
+
+            init() {
+                const saved = localStorage.getItem('rafiqa_admin_logged_in');
+                if (saved === 'true') {
+                    this.isLoggedIn = true;
+                    this.loginForm.email = localStorage.getItem('rafiqa_admin_email') || 'admin@rafiqa.app';
+                }
+
+                const savedSettings = localStorage.getItem('rafiqa_settings');
+                if (savedSettings) {
+                    try { Object.assign(this.settings, JSON.parse(savedSettings)); } catch (e) {}
+                }
+
+                const savedAdminKey = localStorage.getItem('rafiqa_admin_key');
+                if (savedAdminKey) this.uploadConfig.adminKey = savedAdminKey;
+
+                const savedHfUrl = localStorage.getItem('rafiqa_hf_url');
+                if (savedHfUrl) this.uploadConfig.hfSpaceUrl = savedHfUrl;
+
+                this.knowledge.sources = [...this.defaultSources];
+
+                if (this.isLoggedIn) {
+                    this.fetchAdminData();
+                    this.startAutoRefresh();
+                }
+            },
+
+            login() {
+                if (this.loginForm.email && this.loginForm.password) {
+                    this.isLoggedIn = true;
+                    this.loginError = '';
+                    localStorage.setItem('rafiqa_admin_logged_in', 'true');
+                    localStorage.setItem('rafiqa_admin_email', this.loginForm.email);
+                    this.fetchAdminData();
+                    this.startAutoRefresh();
+                } else {
+                    this.loginError = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+                }
+            },
+
+            logout() {
+                this.isLoggedIn = false;
+                localStorage.removeItem('rafiqa_admin_logged_in');
+                localStorage.removeItem('rafiqa_admin_email');
+                this.loginForm.password = '';
+                this.stopAutoRefresh();
+            },
+
+            startAutoRefresh() {
+                this.stopAutoRefresh();
+                this.autoRefreshInterval = setInterval(() => {
+                    this.fetchAdminData(true);
+                }, 30000);
+            },
+
+            stopAutoRefresh() {
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                    this.autoRefreshInterval = null;
+                }
+            },
+
+            async fetchAdminData(silent = false) {
+                const baseUrl = this.uploadConfig.hfSpaceUrl?.replace(/\/+$/, '');
+                const adminKey = this.uploadConfig.adminKey;
+
+                if (!baseUrl || !adminKey) return;
+
+                if (!silent) this.isLoadingData = true;
+
+                // Save HF URL
+                localStorage.setItem('rafiqa_hf_url', baseUrl);
+
+                try {
+                    const callResp = await fetch(`${baseUrl}/gradio_api/call/get_admin_data`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: [adminKey] }),
+                    });
+
+                    if (!callResp.ok) throw new Error(`API error (${callResp.status})`);
+
+                    const { event_id } = await callResp.json();
+
+                    const sseResp = await fetch(`${baseUrl}/gradio_api/call/get_admin_data/${event_id}`);
+                    const sseText = await sseResp.text();
+
+                    let output = '';
+                    const sseLines = sseText.split('\n');
+                    for (let i = 0; i < sseLines.length; i++) {
+                        if (sseLines[i].startsWith('event: complete') && i + 1 < sseLines.length) {
+                            const dataLine = sseLines[i + 1];
+                            if (dataLine.startsWith('data: ')) {
+                                const parsed = JSON.parse(dataLine.slice(6));
+                                output = parsed[0];
+                            }
+                        }
+                    }
+
+                    if (!output) return;
+
+                    const data = JSON.parse(output);
+
+                    if (data.error) {
+                        if (!silent) this.showToast('مفتاح الأدمن غير صحيح', 'error');
+                        return;
+                    }
+
+                    this.stats.totalConversations = data.stats.totalConversations || 0;
+                    this.stats.totalMessages = data.stats.totalMessages || 0;
+                    this.stats.emergencyAlerts = data.stats.emergencyAlerts || 0;
+                    this.stats.activeUsers = '—';
+
+                    this.conversations = (data.conversations || []).map(c => ({
+                        ...c,
+                        messagesCount: c.messagesCount || (c.messages?.length || 0),
+                        duration: c.duration || '',
+                    }));
+
+                    this.emergencyAlerts = data.alerts || [];
+                    this.recentActivities = data.activities || [];
+
+                    const unhandledAlerts = this.emergencyAlerts.filter(a => !a.handled).length;
+                    const alertNav = this.navItems.find(n => n.id === 'alerts');
+                    if (alertNav) alertNav.badge = unhandledAlerts > 0 ? String(unhandledAlerts) : null;
+
+                    const uploadedSources = (data.uploadedFiles || []).map(f => {
+                        const ext = f.name.split('.').pop().toLowerCase();
+                        const typeMap = { pdf: 'pdf', txt: 'text', md: 'text', xlsx: 'excel', xls: 'excel' };
+                        return { name: f.name, type: typeMap[ext] || 'pdf', size: f.size || '' };
+                    });
+                    const allSources = [...this.defaultSources];
+                    for (const us of uploadedSources) {
+                        if (!allSources.find(s => s.name === us.name)) allSources.push(us);
+                    }
+                    this.knowledge.sources = allSources;
+
+                    if (data.uploadedFiles?.length > 0) {
+                        this.knowledge.lastUpdated = data.uploadedFiles[0].date || '—';
+                    }
+
+                    this.lastFetch = new Date();
+                    if (!silent) this.showToast('تم تحديث البيانات من الشات بوت ✅', 'success');
+
+                } catch (error) {
+                    console.error('Fetch admin data error:', error);
+                    if (!silent) {
+                        this.showToast('تعذر الاتصال بالشات بوت — تأكد من الرابط ومفتاح الأدمن', 'error');
+                    }
+                } finally {
+                    this.isLoadingData = false;
+                }
+            },
+
+            getTabDescription() {
+                const descriptions = {
+                    dashboard: 'نظرة عامة على أداء الشات بوت',
+                    conversations: 'عرض وإدارة محادثات الأمهات',
+                    alerts: 'متابعة تنبيهات الطوارئ والحالات الحرجة',
+                    knowledge: 'إدارة قاعدة المعرفة ومصادر البيانات',
+                    settings: 'تهيئة إعدادات الشات بوت والنشر',
+                };
+                return descriptions[this.currentTab] || '';
+            },
+
+            filteredConversations() {
+                let filtered = this.conversations;
+                if (this.filterStatus !== 'all') {
+                    filtered = filtered.filter(c => c.status === this.filterStatus);
+                }
+                if (this.searchQuery) {
+                    const q = this.searchQuery.toLowerCase();
+                    filtered = filtered.filter(c =>
+                        c.userName.includes(q) || c.lastMessage.includes(q)
+                    );
+                }
+                return filtered;
+            },
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.uploadConfig.file = file;
+                    this.uploadConfig.fileName = file.name;
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    this.uploadConfig.fileSize = sizeMB + ' MB';
+                } else {
+                    this.uploadConfig.file = null;
+                    this.uploadConfig.fileName = '';
+                    this.uploadConfig.fileSize = '';
+                }
+            },
+
+            async uploadFile() {
+                if (!this.uploadConfig.file) {
+                    this.showToast('يرجى اختيار ملف أولاً', 'error');
+                    return;
+                }
+                if (!this.uploadConfig.adminKey) {
+                    this.showToast('يرجى إدخال مفتاح الأدمن', 'error');
+                    return;
+                }
+                if (!this.uploadConfig.hfSpaceUrl) {
+                    this.showToast('يرجى إدخال رابط HF Space', 'error');
+                    return;
+                }
+
+                localStorage.setItem('rafiqa_admin_key', this.uploadConfig.adminKey);
+
+                this.uploadConfig.isUploading = true;
+                this.uploadConfig.result = '';
+                this.uploadConfig.resultSuccess = false;
+
+                try {
+                    const baseUrl = this.uploadConfig.hfSpaceUrl.replace(/\/+$/, '');
+                    const uploadId = crypto.randomUUID();
+
+                    const formData = new FormData();
+                    formData.append('files', this.uploadConfig.file);
+
+                    const uploadResp = await fetch(`${baseUrl}/gradio_api/upload?upload_id=${uploadId}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!uploadResp.ok) throw new Error(`فشل رفع الملف (${uploadResp.status})`);
+
+                    const uploadedFiles = await uploadResp.json();
+                    const filePath = uploadedFiles[0];
+
+                    const fileData = {
+                        path: filePath,
+                        url: `${baseUrl}/file=${filePath}`,
+                        orig_name: this.uploadConfig.fileName,
+                        size: this.uploadConfig.file.size,
+                        mime_type: this.uploadConfig.file.type || 'application/octet-stream',
+                        is_stream: false,
+                        meta: { _type: 'gradio.FileData' },
+                    };
+
+                    const callResp = await fetch(`${baseUrl}/gradio_api/call/upload_document`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            data: [fileData, this.uploadConfig.adminKey],
+                        }),
+                    });
+
+                    if (!callResp.ok) throw new Error(`فشل بدء المعالجة (${callResp.status})`);
+
+                    const { event_id } = await callResp.json();
+
+                    const sseResp = await fetch(`${baseUrl}/gradio_api/call/upload_document/${event_id}`);
+                    const sseText = await sseResp.text();
+
+                    let output = '';
+                    const sseLines = sseText.split('\n');
+                    for (let i = 0; i < sseLines.length; i++) {
+                        if (sseLines[i].startsWith('event: complete') && i + 1 < sseLines.length) {
+                            const dataLine = sseLines[i + 1];
+                            if (dataLine.startsWith('data: ')) {
+                                const parsed = JSON.parse(dataLine.slice(6));
+                                output = parsed[0];
+                            }
+                        }
+                        if (sseLines[i].startsWith('event: error')) {
+                            throw new Error('حدث خطأ في معالجة الملف على السيرفر');
+                        }
+                    }
+
+                    if (!output) throw new Error('لم يتم استلام نتيجة من السيرفر');
+
+                    this.uploadConfig.result = output;
+                    this.uploadConfig.resultSuccess = output.startsWith('✅');
+
+                    if (this.uploadConfig.resultSuccess) {
+                        this.showToast('تم رفع الملف ومعالجته بنجاح! ✅', 'success');
+                        await this.fetchAdminData(true);
+                    } else {
+                        this.showToast('فشل في رفع الملف ❌', 'error');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    this.uploadConfig.result = '❌ حدث خطأ: ' + error.message;
+                    this.uploadConfig.resultSuccess = false;
+                    this.showToast('حدث خطأ أثناء الرفع ❌', 'error');
+                } finally {
+                    this.uploadConfig.isUploading = false;
+                }
+            },
+
+            saveSettings() {
+                localStorage.setItem('rafiqa_settings', JSON.stringify(this.settings));
+                this.showToast('تم حفظ الإعدادات بنجاح ✅', 'success');
+            },
+
+            showToast(message, type = 'success') {
+                this.toast = { show: true, message, type };
+                setTimeout(() => { this.toast.show = false; }, 3000);
+            },
+        };
+    }
+    </script>
+</body>
+</html>

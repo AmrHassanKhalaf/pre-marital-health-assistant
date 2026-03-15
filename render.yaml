@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: pre-marital-health-assistant
+    env: python
+    rootDir: chatbot
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX
+        value: pre-marital-health-assistant
+      - key: PINECONE_NAMESPACE
+        value: premarital
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: ADMIN_API_KEY
+        sync: false

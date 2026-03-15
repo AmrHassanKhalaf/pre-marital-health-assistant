@@ -1,0 +1,22 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Admin data (generated at runtime)
+admin_data/
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,43 @@
+﻿name: Sync to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hf_chatbot_deploy/**'   # بس لما تتغير ملفات الشات بوت
+
+  workflow_dispatch:               # أو تشغله يدوي من GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push hf_chatbot_deploy to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # ---- إعدادات Git ----
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # ---- Clone الـ HF Space ----
+          git clone https://YOUR_HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/YOUR_HF_USERNAME/pre-marital-health-assistant hf_space
+          
+          # ---- امسح الملفات القديمة (ماعدا .git) ----
+          cd hf_space
+          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
+          
+          # ---- انسخ الملفات الجديدة من hf_chatbot_deploy ----
+          cp -r ../hf_chatbot_deploy/* .
+          cp -r ../hf_chatbot_deploy/.* . 2>/dev/null || true
+          
+          # ---- ارفع على HF ----
+          git add .
+          git diff --staged --quiet && echo "No changes to push" && exit 0
+          git commit -m "Auto-sync from GitHub $(date +'%Y-%m-%d %H:%M')"
+          git push
